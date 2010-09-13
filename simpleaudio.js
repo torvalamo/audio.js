@@ -43,14 +43,14 @@ as the name is changed.
 			_sounds[name].addEventListener("canplaythrough", function () {
 				events("ready", name);
 			}, false);
-			_sounds[name].sound.addEventListener("play", function () {
+			_sounds[name].addEventListener("play", function () {
 				events("play", name);
 			}, false);
-			_sounds[name].sound.addEventListener("pause", function () {
+			_sounds[name].addEventListener("pause", function () {
 				events("pause", name);
 			}, false);
-			_sounds[name].sound.addEventListener("ended", function () {
-				evemts("ended", name);
+			_sounds[name].addEventListener("ended", function () {
+				events("ended", name);
 			}, false);
 		} catch (e) {}
 	}

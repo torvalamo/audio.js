@@ -14,9 +14,16 @@
 			}
 			
 			function event(e, sound) {
+				var elem = document.getElementById("btn_" + sound)
 				if (e == "ready") {
-					document.getElementById("btn_" + sound).disabled = false;
+					elem.disabled = false;
 					loaded();
+				}
+				if (e == "play") {
+					elem.disabled = true;
+				}
+				if (e == "ended") {
+					elem.disabled = false;
 				}
 			}
 			
