@@ -17,8 +17,8 @@ supporting HTML5Audio, but it also requires that you have two files per sound
 on the server.
 
 * `void htmlaudio.addSound(string name, string url[, callback eventHandler])`
-	_url_ must not have an extension!
-	Info on _eventHandler_ can be found further down in this document.
+* * _url_ must not have an extension!
+* * Info on _eventHandler_ can be found further down in this document.
 * `void htmlaudio.playSound(string name)`
 
 ex: `htmlaudio.addSound('mysound', '/sounds/mysound');`
@@ -34,55 +34,60 @@ load specific filetypes, you need to use audio.js.
 
 Audio.js has 4 distinct sections:
 
-1. Global
-	This sets the global volume, similar to a "Main Volume" slider in various
-	games or your OS. It also lets you determine if the browser supports a
-	given audio type.
-	
-	All volume values must be between 0 and 1 (ex. 0.67), and the default is
-	always 1.
-	
-	* `float htmlaudio.getGlobalVolume()`
-	* `void htmlaudio.setGlobalVolume(float volume)`
-	* `bool htmlaudio.supportsType(string mime)`
-		_mime_ is a mime type, such as 'audio/ogg' or 'audio/mp3'.
+### Global
 
-2. Groups (volume groups)
-	A group is what you in your game would see as "Background Music",
-	"Background Sounds", "Sound FX", "Speech", etc. Each group has its own
-	volume setting, which is the main purpose of having a group. You can skip
-	these features if you don't need them.
-	
-	* `bool htmlaudio.addGroup(string name)`
-	* `bool htmlaudio.removeGroup(string name)`
-		This also removes all sounds belonging to the group.
-	* `float htmlaudio.getGroupVolume(string name)`
-	* `void htmlaudio.setGroupVolume(string name, float volume)`
+This sets the global volume, similar to a "Main Volume" slider in various
+games or your OS. It also lets you determine if the browser supports a
+given audio type.
 
-3. Layers
-	Layers are groups of sounds that should only play a given number of sounds
-	at once. For instance if you have a "crowd", you don't want to play one
-	sound per person. That would be a mess.
-	
-	* `bool htmlaudio.addLayer(string name[, integer limit][, string group])`
-		Default _limit_ is 1, and must be at least 1.
-	* `bool htmlaudio.removeLayer(string name)`
-		This also removes all sounds belonging to the layer.
-	* `bool htmlaudio.setLayerLimit(string name, integer limit)`
+All volume values must be between 0 and 1 (ex. 0.67), and the default is
+always 1.
 
-4. Sounds
-	These are the actual sound files. A sound can belong to a group or a layer,
-	or it can be on its own. It is recommended that only layers are added to
-	groups, and that sounds are added to layers, to prevent a dozen sounds
-	playing at once.
-	
-	* `bool htmlaudio.addSound(string name, string url[, string layer][, callback eventHandler])`
-	* `bool htmlaudio.addSoundToGroup(string name, string url, string group[, callback eventHandler])`
-	* `bool htmlaudio.removeSound(string name)`
-	* `bool htmlaudio.playSound(string name[, bool loop])`
-		_loop_ determines if the sound should repeat when ended. Default is false.
-	* `bool htmlaudio.pauseSound(string name[, bool reset])`
-	    _reset_ determines if pauseSound should act like a stop. Default is true. 
+* `float htmlaudio.getGlobalVolume()`
+* `void htmlaudio.setGlobalVolume(float volume)`
+* `bool htmlaudio.supportsType(string mime)`
+* * _mime_ is a mime type, such as 'audio/ogg' or 'audio/mp3'.
+
+### Groups (volume groups)
+
+A group is what you in your game would see as "Background Music",
+"Background Sounds", "Sound FX", "Speech", etc. Each group has its own
+volume setting, which is the main purpose of having a group. You can skip
+these features if you don't need them.
+
+* `bool htmlaudio.addGroup(string name)`
+* `bool htmlaudio.removeGroup(string name)`
+* * This also removes all sounds belonging to the group.
+* `float htmlaudio.getGroupVolume(string name)`
+* `void htmlaudio.setGroupVolume(string name, float volume)`
+
+### Layers
+
+Layers are groups of sounds that should only play a given number of sounds
+at once. For instance if you have a "crowd", you don't want to play one
+sound per person. That would be a mess.
+
+* `bool htmlaudio.addLayer(string name[, integer limit][, string group])`
+* * Default _limit_ is 1, and must be at least 1.
+* `bool htmlaudio.removeLayer(string name)`
+* * This also removes all sounds belonging to the layer.
+* `bool htmlaudio.setLayerLimit(string name, integer limit)`
+
+### Sounds
+
+These are the actual sound files. A sound can belong to a group or a layer,
+or it can be on its own.
+
+It is recommended that only layers are added to groups, and that sounds are
+added to layers, to prevent a dozen sounds playing at once.
+
+* `bool htmlaudio.addSound(string name, string url[, string layer][, callback eventHandler])`
+* `bool htmlaudio.addSoundToGroup(string name, string url, string group[, callback eventHandler])`
+* `bool htmlaudio.removeSound(string name)`
+* `bool htmlaudio.playSound(string name[, bool loop])`
+* * _loop_ determines if the sound should repeat when ended. Default is false.
+* `bool htmlaudio.pauseSound(string name[, bool reset])`
+* * _reset_ determines if pauseSound should act like a stop. Default is true. 
 
 ## eventHandler
 	
@@ -98,7 +103,7 @@ only in some browsers.
 - "pause": The sound has paused.
 - "ended": The sound has reached the end and is not set for looping.
 
-See simpleaudio.html for an example of event handling.
+See examples/simpleaudio.html for an example of event handling.
 
 ## License
 
