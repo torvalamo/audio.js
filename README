@@ -1,0 +1,87 @@
+When using this library you can choose between two different files.
+
+simpleaudio.js - This only loads individual sounds and plays them.
+audio.js - This has a bunch of other features which you can read about below.
+
+## simpleaudio.js
+
+Simpleaudio determines whether the browser can play .ogg or .mp3, and loads
+the relevant file. This allows you to play sounds in all the latest browsers
+supporting HTML5Audio, but it also requires that you have two files per sound
+on the server.
+
+htmlaudio.addSound(name, url); // url must not have an extension!
+htmlaudio.playSound(name);
+
+ex: htmlaudio.addSound('mysound', '/sounds/mysound');
+This will load either /sounds/mysound.ogg or /sounds/mysound.mp3 depending on
+which filetype the browser can play. In case of both, .ogg is preferred, due to
+smaller size.
+
+As such, the two libraries are not interoperable at the moment, so if you want
+to only load specific filetypes, you need to use audio.js.
+
+## audio.js
+
+Audio.js has 4 distinct sections:
+
+1. Global
+	This sets the global volume, similar to a "Main Volume" slider in various
+	games or your OS. It also lets you determine if the browser supports a
+	given audio type.
+	
+	All volume values must be between 0 and 1 (ex. 0.67), and the default is
+	always 1.
+
+	htmlaudio.setGlobalVolume(volume);
+	htmlaudio.supportsType(mime); // eg. supporstType('audio/ogg')
+
+2. Groups (volume groups)
+	A group is what you in your game would see as "Background Music",
+	"Background Sounds", "Sound FX", "Speech", etc. Each group has its own
+	volume setting, which is the main purpose of having a group. You can skip
+	these features if you don't need them.
+	
+	htmlaudio.addGroup(name);
+	htmlaudio.removeGroup(name); // Removes all sounds belonging to it.
+	htmlaudio.getGroupVolume(name);
+	htmlaudio.setGroupVolume(name, volume);
+
+3. Layers
+	Layers are groups of sounds that should only play a given number of sounds
+	at once. For instance if you have a "crowd", you don't want to play one
+	sound per person. That would be a mess.
+	
+	Layers don't have their own volume settings, but it might be added in the
+	future.
+	
+	htmlaudio.addLayer(name[, limit][, group]); // Default limit is 1.
+	htmlaudio.removeLayer(name); // Removes all sounds belonging to it.
+
+4. Sounds
+	These are the actual sound files. A sound can belong to a group or a layer,
+	or it can be on its own. It is recommended that only layers are added to
+	groups, and that sounds are added to layers, to prevent a dozen sounds
+	playing at once.
+	
+	htmlaudio.addSound(name, url[, layer]);
+	htmlaudio.addSoundToGroup(name, url, group);
+	htmlaudio.removeSound(name);
+	htmlaudio.playSound(name);
+	htmlaudio.pauseSound(name);
+
+## License
+
+           DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+                   Version 2, December 2004
+
+
+Copyright (C) 2010 Tor Valamo <tor.valamo@gmail.com>
+Everyone is permitted to copy and distribute verbatim or modified
+copies of this license document, and changing it is allowed as long
+as the name is changed.
+ 
+           DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+  TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
+ 
+ 0. You just DO WHAT THE FUCK YOU WANT TO.
