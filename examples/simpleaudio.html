@@ -9,7 +9,7 @@
 			
 			function event(e, sound) {
 				var elem = document.getElementById("btn_" + sound)
-				if (e == "ready") {
+				if (e == "canplaythrough") {
 					elem.disabled = false;
 					sounds_to_load--;
 					if (!sounds_to_load) {

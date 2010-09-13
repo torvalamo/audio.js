@@ -32,21 +32,24 @@ load specific filetypes, you need to use audio.js.
 
 ## audio.js
 
-Audio.js has 4 distinct sections:
+Audio.js has 4 distinct sections (though all functions are in the
+`htmlaudio` object):
 
 ### Global
 
-This sets the global volume, similar to a "Main Volume" slider in various
-games or your OS. It also lets you determine if the browser supports a
-given audio type.
+This sets the global volume, like a "Main Volume" slider in various games or
+your OS (PS: it doesn't actually change your OS volume, it's just a simile!).
+It also lets you determine if the browser supports a given audio type.
 
 All volume values must be between 0 and 1 (ex. 0.67), and the default is
 always 1.
 
+* `bool htmlaudio.canPlayType(string mime)`
+* * _mime_ is a mime type, such as 'audio/ogg' or 'audio/mp3'.
 * `float htmlaudio.getGlobalVolume()`
 * `void htmlaudio.setGlobalVolume(float volume)`
-* `bool htmlaudio.supportsType(string mime)`
-* * _mime_ is a mime type, such as 'audio/ogg' or 'audio/mp3'.
+* `void htmlaudio.kill()`
+* * Pauses all sounds without resetting them (see pauseSound()).
 
 ### Groups (volume groups)
 
@@ -58,8 +61,9 @@ these features if you don't need them.
 * `bool htmlaudio.addGroup(string name)`
 * `bool htmlaudio.removeGroup(string name)`
 * * This also removes all sounds belonging to the group.
-* `float htmlaudio.getGroupVolume(string name)`
-* `void htmlaudio.setGroupVolume(string name, float volume)`
+* `float/bool htmlaudio.getGroupVolume(string name)`
+* * Returns a boolean _false_ if the group does not exist.
+* `bool htmlaudio.setGroupVolume(string name, float volume)`
 
 ### Layers
 
@@ -94,14 +98,15 @@ added to layers, to prevent a dozen sounds playing at once.
 The eventHandler callback function when adding sounds is called with two
 arguments, _event_ and _sound name_, where _event_ is one of the following:
 
-- "error": There was an error in loading the file (eg. doesn't exist).
-- "loading": The file has started loading.
-- "ready": The browser estimates it has downloaded enough of the file that it
-can play through it. This does not necessarily mean that it is fully loaded,
-only in some browsers.
-- "play": The sound starts playing or has looped back to the beginning.
-- "pause": The sound has paused.
-- "ended": The sound has reached the end and is not set for looping.
+- __error__: There was an error in loading or playing the file (eg. doesn't
+exist or bad encoding).
+- __progress__: The file has started loading.
+- __canplaythrough__: The browser estimates it has downloaded enough of the
+file that it can play through it without interruption. This does not
+necessarily mean that it is fully loaded, only in some browsers.
+- __play__: The sound starts playing or has looped back to the beginning.
+- __pause__: The sound has paused.
+- __ended__: The sound has reached the end and is not set for looping.
 
 See examples/simpleaudio.html for an example of event handling.
 
