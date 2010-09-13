@@ -3,6 +3,12 @@ When using this library you can choose between two different files.
 simpleaudio.js - This only loads individual sounds and plays them.
 audio.js - This has a bunch of other features which you can read about below.
 
+To include it in your html document, just add
+
+    <script src="simpleaudio.js"></script>`
+
+in your `<head>` tag.
+
 ## simpleaudio.js
 
 Simpleaudio determines whether the browser can play .ogg or .mp3, and loads
@@ -10,8 +16,9 @@ the relevant file. This allows you to play sounds in all the latest browsers
 supporting HTML5Audio, but it also requires that you have two files per sound
 on the server.
 
-htmlaudio.addSound(name, url[, eventHandler]); // url must not have an extension!
-htmlaudio.playSound(name);
+* `void htmlaudio.addSound(name, url[, eventHandler])`
+  _url must not have an extension!_
+* `void htmlaudio.playSound(name)`
 
 ex: htmlaudio.addSound('mysound', '/sounds/mysound');
 This will load either /sounds/mysound.ogg or /sounds/mysound.mp3 depending on
@@ -20,8 +27,8 @@ smaller size.
 
 Info on event handler can be found in the audio.js section.
 
-As such, the two libraries are not interoperable at the moment, so if you want
-to only load specific filetypes, you need to use audio.js.
+The two libraries are not interoperable at the moment, so if you want to only
+load specific filetypes, you need to use audio.js.
 
 ## audio.js
 
@@ -76,7 +83,8 @@ Audio.js has 4 distinct sections:
 	- "error": there was an error in loading the file (eg. doesn't exist)
 	- "loading": the file has started loading
 	- "ready": the browser estimates it has downloaded enough of the file
-	           that it can play through it.
+	           that it can play through it. This does not mean that it is
+			   fully loaded.
 	- "play": the sound starts playing or looped back to the beginning
 	- "pause": the sound has paused
 	- "ended": the sound has reached the end and is not set for looping
@@ -85,16 +93,15 @@ Audio.js has 4 distinct sections:
 
 ## License
 
-           DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
-                   Version 2, December 2004
-
-
-Copyright (C) 2010 Tor Valamo <tor.valamo@gmail.com>
-Everyone is permitted to copy and distribute verbatim or modified
-copies of this license document, and changing it is allowed as long
-as the name is changed.
- 
-           DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
-  TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
- 
- 0. You just DO WHAT THE FUCK YOU WANT TO.
+    DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+    Version 2, December 2004
+    
+    Copyright (C) 2010 Tor Valamo <tor.valamo@gmail.com>
+    Everyone is permitted to copy and distribute verbatim or modified
+    copies of this license document, and changing it is allowed as long
+    as the name is changed.
+    
+    DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
+    TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
+    
+    0. You just DO WHAT THE FUCK YOU WANT TO.
