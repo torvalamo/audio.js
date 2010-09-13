@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+	<title>Simpleaudio example</title>
+	<script src="simpleaudio.js"></script>
+	<script>
+		window.onload = function() {
+			var sounds_to_load = 2;
+			function loaded() {
+				sounds_to_load--;
+				if (!sounds_to_load) {
+					document.getElementById("loading").style.display = "none";
+				}
+			}
+			
+			function event(e, sound) {
+				if (e == "ready") {
+					document.getElementById("btn_" + sound).disabled = false;
+					loaded();
+				}
+			}
+			
+			htmlaudio.addSound("heal", "sounds/heal", event);
+			htmlaudio.addSound("thunder", "sounds/thunder", event);
+		}
+	</script>
+</head>
+<body>
+	<button id="btn_heal" onclick="htmlaudio.playSound('heal')" disabled>Play heal</button>
+	<button id="btn_thunder" onclick="htmlaudio.playSound('thunder')" disabled>Play thunder</button>
+	<div id="loading">Loading audio files, please wait...</div>
+</body>
+</html>

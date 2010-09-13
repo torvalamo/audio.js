@@ -64,11 +64,20 @@ Audio.js has 4 distinct sections:
 	groups, and that sounds are added to layers, to prevent a dozen sounds
 	playing at once.
 	
-	htmlaudio.addSound(name, url[, layer]);
-	htmlaudio.addSoundToGroup(name, url, group);
+	htmlaudio.addSound(name, url[, layer][, listener]);
+	htmlaudio.addSoundToGroup(name, url, group[, listener]);
 	htmlaudio.removeSound(name);
-	htmlaudio.playSound(name);
+	htmlaudio.playSound(name[, loop]); // loop boolean, defaults to false
 	htmlaudio.pauseSound(name);
+	
+	The listener callback function when adding sounds, is called when
+	- "error": there was an error in loading the file (eg. doesn't exist)
+	- "loading": the file has started loading
+	- "ready": the browser estimates it has downloaded enough of the file
+	           that it can play through it.
+	- "play": the sound starts playing or looped back to the beginning
+	- "pause": the sound has paused
+	- "ended": the sound has reached the end and is not set for looping
 
 ## License
 

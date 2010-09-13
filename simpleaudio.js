@@ -16,13 +16,9 @@ as the name is changed.
 
 (function() {
 	var htmlaudio = {};
-	
-	/**
-	 * "global"
-	**/
 	var _sounds = {};
 	
-	function addSound(name, url) {
+	function addSound(name, url, events) {
 		// Register a sound, located at url, with the given name.
 		// Url should not have an extension.
 		// We will determine which extension to load depending on the browser.
@@ -35,6 +31,27 @@ as the name is changed.
 			else return;
 		
 			_sounds[name] = new Audio(url);
+			
+			// add event listeners
+			if (!events) return;
+			_sounds[name].addEventListener("error", function() {
+				events("error", name);
+			}, false);
+			_sounds[name].addEventListener("progress", function () {
+				events("loading", name);
+			}, false);
+			_sounds[name].addEventListener("canplaythrough", function () {
+				events("ready", name);
+			}, false);
+			_sounds[name].sound.addEventListener("play", function () {
+				events("play", name);
+			}, false);
+			_sounds[name].sound.addEventListener("pause", function () {
+				events("pause", name);
+			}, false);
+			_sounds[name].sound.addEventListener("ended", function () {
+				evemts("ended", name);
+			}, false);
 		} catch (e) {}
 	}
 	
