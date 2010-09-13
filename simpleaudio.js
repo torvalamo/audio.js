@@ -47,7 +47,7 @@ as the name is changed.
 		} catch (e) {}
 	}
 	
-	htmlaudio.registerSound = registerSound;
+	htmlaudio.addSound = addSound;
 	htmlaudio.playSound = playSound;
 	
 	window.htmlaudio = htmlaudio;
