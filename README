@@ -10,13 +10,15 @@ the relevant file. This allows you to play sounds in all the latest browsers
 supporting HTML5Audio, but it also requires that you have two files per sound
 on the server.
 
-htmlaudio.addSound(name, url); // url must not have an extension!
+htmlaudio.addSound(name, url[, eventHandler]); // url must not have an extension!
 htmlaudio.playSound(name);
 
 ex: htmlaudio.addSound('mysound', '/sounds/mysound');
 This will load either /sounds/mysound.ogg or /sounds/mysound.mp3 depending on
 which filetype the browser can play. In case of both, .ogg is preferred, due to
 smaller size.
+
+Info on event handler can be found in the audio.js section.
 
 As such, the two libraries are not interoperable at the moment, so if you want
 to only load specific filetypes, you need to use audio.js.
@@ -64,13 +66,13 @@ Audio.js has 4 distinct sections:
 	groups, and that sounds are added to layers, to prevent a dozen sounds
 	playing at once.
 	
-	htmlaudio.addSound(name, url[, layer][, listener]);
-	htmlaudio.addSoundToGroup(name, url, group[, listener]);
+	htmlaudio.addSound(name, url[, layer][, eventHandler]);
+	htmlaudio.addSoundToGroup(name, url, group[, eventHandler]);
 	htmlaudio.removeSound(name);
 	htmlaudio.playSound(name[, loop]); // loop boolean, defaults to false
 	htmlaudio.pauseSound(name);
 	
-	The listener callback function when adding sounds, is called when
+	The eventHandler callback function when adding sounds, is called when
 	- "error": there was an error in loading the file (eg. doesn't exist)
 	- "loading": the file has started loading
 	- "ready": the browser estimates it has downloaded enough of the file
@@ -78,6 +80,8 @@ Audio.js has 4 distinct sections:
 	- "play": the sound starts playing or looped back to the beginning
 	- "pause": the sound has paused
 	- "ended": the sound has reached the end and is not set for looping
+	
+	It has two arguments, event (seen above) and name of the sound.
 
 ## License
 
