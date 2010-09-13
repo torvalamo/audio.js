@@ -2,22 +2,19 @@
 <html>
 <head>
 	<title>Simpleaudio example</title>
-	<script src="simpleaudio.js"></script>
+	<script src="../simpleaudio.js"></script>
 	<script>
 		window.onload = function() {
 			var sounds_to_load = 2;
-			function loaded() {
-				sounds_to_load--;
-				if (!sounds_to_load) {
-					document.getElementById("loading").style.display = "none";
-				}
-			}
 			
 			function event(e, sound) {
 				var elem = document.getElementById("btn_" + sound)
 				if (e == "ready") {
 					elem.disabled = false;
-					loaded();
+					sounds_to_load--;
+					if (!sounds_to_load) {
+						document.getElementById("loading").style.display = "none";
+					}
 				}
 				if (e == "play") {
 					elem.disabled = true;
