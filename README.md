@@ -1,15 +1,24 @@
-Latest release is v0.1.0
+Latest release is v0.1.0-1
 
 When using this library you can choose between two different files.
 
-* simpleaudio.js - This only loads individual sounds and plays them.
+* simpleaudio.js - This only loads individual sounds and plays them. If you
+only need sounds for things like notification sounds (like a 'ping' on a new
+chat message, or telling the user it's his turn in a turn based game), then
+this file will do.
 * audio.js - This has a bunch of other features which you can read about below.
+If you're developing an advanced game with dozens (or hundreds) of sounds, this
+file might be what you need.
 
 To include it in your html document, just add
 
-    <script src="simpleaudio.js"></script>`
+    <script src="simpleaudio.js"></script>
 
-in your `<head>` tag.
+or
+
+	<script src="audio.js"></script>
+
+inside your `<head>` tag.
 
 ## simpleaudio.js
 
