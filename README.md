@@ -1,3 +1,5 @@
+Latest release is v0.1.0
+
 When using this library you can choose between two different files.
 
 * simpleaudio.js - This only loads individual sounds and plays them.
