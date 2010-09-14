@@ -330,7 +330,7 @@ as the name is changed.
 		// validate
 		name = name.toString ? name.toString() : name;
 		if (!_sounds[name]) return false;
-		if (typeof reset !== 'boolean') reset = false;
+		if (typeof reset !== 'boolean') reset = true;
 		
 		_sounds[name].pause();
 		if (reset) _sounds[name].currentTime = 0;
