@@ -20,7 +20,7 @@ as the name is changed.
 	var _volume = 1.0;
 	var _groups = {};
 	var _layers = {};
-    var _sounds = {};
+	var _sounds = {};
 	
 	//////////////////////////////////////////////////////////////////////////
 	// All-encompassing functions
@@ -43,7 +43,7 @@ as the name is changed.
 	function setGlobalVolume(volume) {
 		// validate
 		volume = !isNaN(volume) ? ((volume < 0) ? 0 :
-								   (volume > 1) ? 1 : volume) : 1;
+			(volume > 1) ? 1 : volume) : 1;
 		_volume = volume;
 		
 		// adjust volume of all sounds
@@ -122,12 +122,12 @@ as the name is changed.
 		name = name.toString ? name.toString() : name;
 		if (!_groups[name]) return false;
 		volume = !isNaN(volume) ? ((volume < 0) ? 0 :
-								   (volume > 1) ? 1 : volume) : 1;
+			(volume > 1) ? 1 : volume) : 1;
 		
 		_groups[name].volume = volume;
 		
 		// multiply with global volume
-		volume *= getGlobalVolume();
+		volume *= _volume;
 		
 		// adjust volume for groups' sounds
 		_groups[name].sounds.forEach(function(s) {
@@ -244,9 +244,9 @@ as the name is changed.
 		sound.addEventListener('ended', function() {ev('ended')}, false);
 		
 		// load sound
-        sound.load();
+		sound.load();
 		_sounds[name] = sound;
-        return true;
+		return true;
 	}
 	
 	function addSound(name, url, layer, eventHandler) {
@@ -270,7 +270,7 @@ as the name is changed.
 		}
 		_sounds[name].volume = v * _volume;
 		return true;
-    };
+	};
 	htmlaudio.addSound = addSound;
 	
 	function addSoundToGroup(name, url, group, eventHandler) {
@@ -285,7 +285,7 @@ as the name is changed.
 		_groups[group].sounds.push(name);
 		_sounds[name].volume = _groups[group].volume * _volume;
 		return true;
-    };
+	};
 	htmlaudio.addSoundToGroup = addSoundToGroup;
 	
 	function removeSound(name) {
