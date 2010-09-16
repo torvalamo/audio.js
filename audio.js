@@ -21,6 +21,7 @@ as the name is changed.
 	var _groups = {};
 	var _layers = {};
 	var _sounds = {};
+	var _silent = false;
 	
 	//////////////////////////////////////////////////////////////////////////
 	// All-encompassing functions
@@ -34,6 +35,11 @@ as the name is changed.
 		}
 	}
 	htmlaudio.canPlayType = canPlayType;
+	
+	function failSilently(on) {
+		_silent = (on !== false);
+	}
+	htmlaudio.failSilently = failSilently;
 	
 	function getGlobalVolume() {
 		return _volume;
@@ -228,7 +234,10 @@ as the name is changed.
 				break;
 			case 'ended':
 				_sounds[name].currentTime = 0;
-				if (_sounds[name].loops) return _sounds[name].play();
+				if (_sounds[name].loops) {
+					_sounds[name].play();
+					return;
+				}
 				if (_sounds[name].layer) _layers[layer].playing--;
 				break;
 			}

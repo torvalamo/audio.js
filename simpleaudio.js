@@ -1,71 +1,157 @@
-/******************************************************************************
-           DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
-                   Version 2, December 2004
-
-
-Copyright (C) 2010 Tor Valamo <tor.valamo@gmail.com>
-Everyone is permitted to copy and distribute verbatim or modified
-copies of this license document, and changing it is allowed as long
-as the name is changed.
- 
-           DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
-  TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
- 
- 0. You just DO WHAT THE FUCK YOU WANT TO.
-******************************************************************************/
+/**
+ * This file is licensed under the WTFPL.
+ * See the readme for more information.
+ */
 
 (function() {
 	var htmlaudio = {};
+	var _path = '';
 	var _sounds = {};
+	var _supported = false;
+	var _volume = 1.0;
 	
-	function addSound(name, url, eventHandler) {
-		// Register a sound, located at url, with the given name.
-		// Url should not have an extension.
-		// We will determine which extension to load depending on the browser.
-		// There should be .ogg and .mp3 files available for each sound.
-		// This function will fail silently.
-		try {
-			var audioObj = new Audio('');
-			if (audioObj.canPlayType('audio/ogg')) url += '.ogg';
-			else if (audioObj.canPlayType('audio/mpeg')) url += '.mp3';
-			else return;
+	// Check for support.
+	try {
+		var audioObj = new Audio('');
+		if (audioObj.canPlayType('audio/ogg')) _supported = '.ogg';
+		else if (audioObj.canPlayType('audio/mpeg')) _supported = '.mp3';
+		delete audioObj;
+	} catch(e) {}
+	
+	/**
+	 * void add(string name)
+	 * void add(string name, function eventHandler)
+	 * Load a sound file.
+	 */
+	function add(name, eventHandler) {
+		if (!name || typeof name !== 'string') return null;
+		if (!_supported) {
+			if (!eventHandler || typeof eventHandler !== 'function') {
+				eventHandler = function() {};
+			}
+			_sounds[name] = {eventHandler: eventHandler};
+			eventHandler('progress', name);
+			eventHandler('canplaythrough', name);
+			return null;
+		}
 		
-			_sounds[name] = new Audio(url);
-			
-			// add event listeners
-			if (!eventHandler) return;
-			_sounds[name].addEventListener("error", function() {
-				eventHandler("error", name);
-			}, false);
-			_sounds[name].addEventListener("progress", function () {
-				eventHandler("progress", name);
-			}, false);
-			_sounds[name].addEventListener("canplaythrough", function () {
-				eventHandler("canplaythrough", name);
-			}, false);
-			_sounds[name].addEventListener("play", function () {
-				eventHandler("play", name);
-			}, false);
-			_sounds[name].addEventListener("pause", function () {
-				eventHandler("pause", name);
-			}, false);
-			_sounds[name].addEventListener("ended", function () {
-				eventHandler("ended", name);
-			}, false);
-		} catch (e) {}
+		_sounds[name] = new Audio(_path + name + _supported);
+		_sounds[name].volume = _volume;
+		
+		if (!eventHandler || typeof eventHandler !== 'function') return null;
+		
+		// Attach events
+		_sounds[name].addEventListener('error', function() {eventHandler('error', name);}, false);
+		_sounds[name].addEventListener('loadstart', function () {eventHandler('loadstart', name);}, false);
+		_sounds[name].addEventListener('progress', function () {eventHandler('progress', name);}, false);
+		function cpt() {
+			// Happens each time we change currentTime, so we'll remove the listener after the first time.
+			eventHandler('canplaythrough', name);
+			_sounds[name].removeEventListener('canplaythrough', cpt, false);
+		}
+		_sounds[name].addEventListener('canplaythrough', cpt, false);
+		_sounds[name].addEventListener('play', function () {eventHandler('play', name);}, false);
+		_sounds[name].addEventListener('pause', function () {eventHandler('ended', name);}, false);
+		function end() {
+			// We need to pause it to make it send the play event after end, so to avoid two
+			// different events, we skip the ended and make it pause instead (which is routed
+			// to ended in the line above this function).
+			_sounds[name].pause();
+		}
+		_sounds[name].addEventListener('ended', end, false);
+		
+		return null;
 	}
+	htmlaudio.add = add;
 	
-	function playSound(name) {
-		// Play sound registered with given name.
-		// This function will fail silently.
-		try {
-			if (!_sounds[name]) return;
-			_sounds[name].play();
-		} catch (e) {}
+	/**
+	 * string path()
+	 * void path(string path)
+	 * Get or set the path to the folder containing the sound files.
+	 */
+	function path(p) {
+		if (!p || typeof p !== 'string') return _path;
+		if (!p.match(/\/$/)) p += '/';
+		_path = p;
+		return null;
 	}
+	htmlaudio.path = path;
 	
-	htmlaudio.addSound = addSound;
-	htmlaudio.playSound = playSound;
+	/**
+	 * void play(string name)
+	 * Play the sound identified by name.
+	 */
+	function play(name) {
+		if (!name || typeof name !== 'string') return null;
+		if (!_sounds[name]) return null;
+		if (!_supported) {
+			_sounds[name].eventHandler('play', name);
+			_sounds[name].eventHandler('ended', name);
+			return null;
+		}
+		// Hack to force browsers to emit the 'play' event after first play.
+		if (_sounds[name].ended) _sounds[name].pause();
+		_sounds[name].currentTime = 0;
+		_sounds[name].play();
+		return null;
+	}
+	htmlaudio.play = play;
+	
+	/**
+	 * void remove()
+	 * void remove(string name)
+	 * Remove all sounds or just the sound identified by name from the library.
+	 */
+	function remove(name) {
+		if (!name || typeof name !== 'string') {
+			this.stop();
+			_sounds = {};
+			return null;
+		}
+		this.stop(name);
+		delete _sounds[name];
+		return null;
+	}
+	htmlaudio.remove = remove;
+	
+	/**
+	 * void stop()
+	 * void stop(string name)
+	 * Stop all playing sounds or just the sound given by name.
+	 */
+	function stop(name) {
+		if (!name || typeof name !== 'string') {
+			for (var s in _sounds) this.stop(s);
+			return null;
+		}
+		if (!_supported || !_sounds[name] || _sounds[name].ended) return null;
+		_sounds[name].pause();
+		return null;
+	}
+	htmlaudio.stop = stop;
+	
+	/**
+	 * bool supported()
+	 * Tell whether or not the browser can play ogg or mp3 files.
+	 */
+	function supported() {
+		return (_supported !== false);
+	}
+	htmlaudio.supported = supported;
+	
+	/**
+	 * float volume()
+	 * void volume(float volume)
+	 * Get or set the volume for all the sounds.
+	 */
+	function volume(v) {
+		if (!v || isNaN(v)) return _volume;
+		if (v < 0 || v > 1) v = 1.0;
+		_volume = v;
+		for (var s in _sounds) _sounds[s].volume = v;
+		return null;
+	}
+	htmlaudio.volume = volume;
 	
 	window.htmlaudio = htmlaudio;
 }());

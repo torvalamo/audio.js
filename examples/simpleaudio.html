@@ -8,6 +8,8 @@
 			var sounds_to_load = 2;
 			
 			function event(e, sound) {
+				document.getElementById("data").innerHTML += e + ': ' + sound + '<br>';
+				
 				var elem = document.getElementById("btn_" + sound)
 				if (e == "canplaythrough") {
 					elem.disabled = false;
@@ -24,14 +26,17 @@
 				}
 			}
 			
-			htmlaudio.addSound("heal", "sounds/heal", event);
-			htmlaudio.addSound("thunder", "sounds/thunder", event);
+			htmlaudio.path("sounds");
+			htmlaudio.add("heal", event);
+			htmlaudio.add("thunder", event);
 		}
 	</script>
 </head>
 <body>
-	<button id="btn_heal" onclick="htmlaudio.playSound('heal')" disabled>Play heal</button>
-	<button id="btn_thunder" onclick="htmlaudio.playSound('thunder')" disabled>Play thunder</button>
+	<button id="btn_heal" onclick="htmlaudio.play('heal')" disabled>Play heal</button>
+	<button id="btn_thunder" onclick="htmlaudio.play('thunder')" disabled>Play thunder</button>
+	<br><button onclick="htmlaudio.stop()">Stop all</button>
 	<div id="loading">Loading audio files, please wait...</div>
+	<div id="data"></div>
 </body>
 </html>
