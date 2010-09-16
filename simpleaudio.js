@@ -1,6 +1,6 @@
 /**
  * This file is licensed under the WTFPL.
- * See the readme for more information.
+ * http://sam.zoy.org/wtfpl/COPYING
  */
 
 (function() {
@@ -69,10 +69,10 @@
 	 * void path(string path)
 	 * Get or set the path to the folder containing the sound files.
 	 */
-	function path(p) {
-		if (!p || typeof p !== 'string') return _path;
-		if (!p.match(/\/$/)) p += '/';
-		_path = p;
+	function path(path) {
+		if (!path || typeof path !== 'string') return _path;
+		if (!path.match(/\/$/)) path += '/';
+		_path = path;
 		return null;
 	}
 	htmlaudio.path = path;
@@ -144,11 +144,11 @@
 	 * void volume(float volume)
 	 * Get or set the volume for all the sounds.
 	 */
-	function volume(v) {
-		if (!v || isNaN(v)) return _volume;
-		if (v < 0 || v > 1) v = 1.0;
-		_volume = v;
-		for (var s in _sounds) _sounds[s].volume = v;
+	function volume(volume) {
+		if (!volume || isNaN(volume)) return _volume;
+		if (volume < 0 || volume > 1) volume = 1.0;
+		_volume = volume;
+		for (var s in _sounds) _sounds[s].volume = volume;
 		return null;
 	}
 	htmlaudio.volume = volume;
