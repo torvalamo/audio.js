@@ -20,6 +20,38 @@
 		else if (audioObj.canPlayType('audio/mpeg')) _supported = '.mp3';
 		delete audioObj;
 	} catch(e) {}
+		
+	/**
+	 * Internal events handler.
+	 */
+	function _ev(event, name) {
+		switch(event) {
+		case 'progress':
+			clearTimeout(_sounds[name].time_stalled);
+			_sounds[name].time_stalled = setTimeout(function() {_ev('loaded', name)}, 3500);
+			break;
+		case 'stalled':
+			clearTimeout(_sounds[name].time_stalled);
+			return;
+		case 'canplaythrough':
+			// happens every time we reset currentTime, so we don't emit
+			// more than once.
+			if (_sounds[name]._cpt) return;
+			_sounds[name]._cpt = true;
+			break;
+		case 'loaded':
+			delete _sounds[name].time_stalled;
+			break;
+		case 'pause':
+			event = 'ended'; // always emit ended when sound stops
+			break;
+		case 'ended':
+			_sounds[name].pause();
+			_sounds[name].currentTime = 0;
+			return; // don't emit here, see pause
+		}
+		if (_sounds[name].eventHandler) _sounds[name].eventHandler(event, name);
+	}
 	
 	/**
 	 * void add(string name)
@@ -36,34 +68,26 @@
 			eventHandler('loadstart', name);
 			eventHandler('progress', name);
 			eventHandler('canplaythrough', name);
+			eventHandler('loaded', name);
 			return null;
 		}
 		
 		_sounds[name] = new Audio(_path + name + _supported);
+		_sounds[name]._cpt = false;
 		_sounds[name].volume = _volume;
 		
 		if (!eventHandler || typeof eventHandler !== 'function') return null;
+		_sounds[name].eventHandler = eventHandler;
 		
-		// Attach events
-		_sounds[name].addEventListener('error', function() {eventHandler('error', name);}, false);
-		_sounds[name].addEventListener('loadstart', function () {eventHandler('loadstart', name);}, false);
-		_sounds[name].addEventListener('progress', function () {eventHandler('progress', name);}, false);
-		function cpt() {
-			// Happens each time we change currentTime, so we'll remove the listener after the first time.
-			eventHandler('canplaythrough', name);
-			_sounds[name].removeEventListener('canplaythrough', cpt, false);
-		}
-		_sounds[name].addEventListener('canplaythrough', cpt, false);
-		_sounds[name].addEventListener('play', function () {eventHandler('play', name);}, false);
-		_sounds[name].addEventListener('pause', function () {eventHandler('ended', name);}, false);
-		function end() {
-			// We need to pause it to make it send the play event after end, so to avoid two
-			// different events, we skip the ended and make it pause instead (which is routed
-			// to ended anyways in the line above this function).
-			_sounds[name].pause();
-			_sounds[name].currentTime = 0;
-		}
-		_sounds[name].addEventListener('ended', end, false);
+		// attach events
+		_sounds[name].addEventListener('error', function() {_ev('error', name);}, false);
+		_sounds[name].addEventListener('loadstart', function() {_ev('loadstart', name);}, false);
+		_sounds[name].addEventListener('progress', function() {_ev('progress', name);}, false);
+		_sounds[name].addEventListener('stalled', function() {_ev('stalled', name);}, false);
+		_sounds[name].addEventListener('canplaythrough', function() {_ev('canplaythrough', name);}, false);
+		_sounds[name].addEventListener('play', function() {_ev('play', name);}, false);
+		_sounds[name].addEventListener('pause', function() {_ev('pause', name);}, false);
+		_sounds[name].addEventListener('ended', function() {_ev('ended', name);}, false);
 		
 		return null;
 	}
