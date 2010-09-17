@@ -1,6 +1,9 @@
 /**
  * This file is licensed under the WTFPL.
  * http://sam.zoy.org/wtfpl/COPYING
+ *
+ * For an overview of these functions and what they do, see
+ * http://github.com/torvalamo/htmlaudio/wiki
  */
 
 (function() {
@@ -30,6 +33,7 @@
 				eventHandler = function() {};
 			}
 			_sounds[name] = {eventHandler: eventHandler};
+			eventHandler('loadstart', name);
 			eventHandler('progress', name);
 			eventHandler('canplaythrough', name);
 			return null;
@@ -55,8 +59,9 @@
 		function end() {
 			// We need to pause it to make it send the play event after end, so to avoid two
 			// different events, we skip the ended and make it pause instead (which is routed
-			// to ended in the line above this function).
+			// to ended anyways in the line above this function).
 			_sounds[name].pause();
+			_sounds[name].currentTime = 0;
 		}
 		_sounds[name].addEventListener('ended', end, false);
 		
@@ -91,7 +96,6 @@
 		}
 		// Hack to force browsers to emit the 'play' event after first play.
 		if (_sounds[name].ended) _sounds[name].pause();
-		_sounds[name].currentTime = 0;
 		_sounds[name].play();
 		return null;
 	}
@@ -126,6 +130,7 @@
 		}
 		if (!_supported || !_sounds[name] || _sounds[name].ended) return null;
 		_sounds[name].pause();
+		_sounds[name].currentTime = 0;
 		return null;
 	}
 	htmlaudio.stop = stop;
