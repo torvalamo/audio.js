@@ -229,7 +229,7 @@
 	 * void volume(float volume)
 	 * Get or set the volume for all the sounds.
 	 */
-	function volume(volume) {
+	function volume() {
 		with (_(arguments, ['volume'], [['number']])) {
 			if (!volume) return _volume;
 			if (volume < 0 || volume > 1) volume = 1.0;
