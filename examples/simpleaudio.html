@@ -11,7 +11,7 @@
 				document.getElementById("data").innerHTML += e + ': ' + sound + '<br>';
 				
 				var elem = document.getElementById("btn_" + sound)
-				if (e == "canplaythrough") {
+				if (e == "loaded") {
 					elem.disabled = false;
 					sounds_to_load--;
 					if (!sounds_to_load) {
