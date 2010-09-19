@@ -7,6 +7,8 @@ Add either `simpleaudio.js` or `audio.js` to your document's `<head>` tag:
 For a complete overview of the differences between the two, as well as a
 function reference, see the [wiki](http://github.com/torvalamo/htmlaudio/wiki/)
 
+At least until v0.3, you should only use `simpleaudio.js` for anything serious.
+
 ## Notes
 
 - A [road map](http://github.com/torvalamo/htmlaudio/wiki/Road-Map) is
