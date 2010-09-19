@@ -9,6 +9,8 @@ function reference, see the [wiki](http://github.com/torvalamo/htmlaudio/wiki/)
 
 ## Notes
 
+- A [road map](http://github.com/torvalamo/htmlaudio/wiki/Road-Map) is
+available in the wiki.
 - The interface may change drastically and/or without backwards compatibility
 up until version 0.5 (when the interface gets locked).
 - There is no changelog until version 0.5+ for the above mentioned reason. If
