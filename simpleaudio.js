@@ -218,7 +218,7 @@
 			}
 			if (!_supported || !_sounds[name]) return null;
 			if (_sounds[name].currentTime) _sounds[name].currentTime = 0;
-			_sounds[name].pause
+			_sounds[name].pause();
 			return null;
 		}
 	}
