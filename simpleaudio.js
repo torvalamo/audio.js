@@ -23,7 +23,7 @@
 	
 	/**
 	 * Arguments validator.
-	 * bool _args(array args, array expected)
+	 * bool _args(array args, array types)
 	 * names = [name, name, name, ...]
 	 * types = [type, [type optional], type, ...]
 	 */
@@ -33,8 +33,9 @@
 			var opt = types[t] instanceof Array,
 				type = opt ? types[t][0] : types[t];
 			if (!_type(args[a], type)) { // wrong type
-				if (!opt) throw new Error('Wrong argument type (got ' + arr[a] + ', expected ' + type + ').'); // required, error
-				else out[names[t]] = undefined; // optional, skip to next format
+				if (!opt || (args[a] !== undefined && types.length == 1)) {
+					throw new Error('Wrong argument type (got ' + args[a] + ', expected ' + type + ').'); // required, error
+				} else out[names[t]] = undefined; // optional, skip to next format
 			} else out[names[t]] = args[a++]; // right type, move to next argument
 		}
 		return out;
@@ -56,7 +57,7 @@
 			break;
 		case 'loadstart':
 			if (!_supported) break;
-			// only happens once so we free some memory
+			// should only happen once so we free some memory
 			_sounds[name].removeEventListener('loadstart', _sounds[name]._lst, false);
 			delete _sounds[name]._lst;
 			break;
@@ -68,8 +69,8 @@
 			clearTimeout(_sounds[name]._time_stalled);
 			return;
 		case 'canplaythrough':
-			// happens every time we reset currentTime on FF, so we don't emit
-			// more than once.
+			// happens every time we reset currentTime on FF, so we just cancel
+			// it after the first time
 			_sounds[name].removeEventListener('canplaythrough', _sounds[name]._cpt, false);
 			delete _sounds[name]._cpt;
 			break;
@@ -94,8 +95,8 @@
 	 */
 	function add() {
 		with (_(arguments,
-					['name', 'eventHandler'],
-					['string', ['function']])) {
+				['name', 'eventHandler'],
+				['string', ['function']])) {
 			if (_sounds[name]) return false;
 			if (!_supported) {
 				_sounds[name] = {_source: ''}
@@ -139,8 +140,10 @@
 	 * Get or set the path to the folder containing the sound files.
 	 */
 	function path() {
-		with (_(arguments, ['path'], [['string']])) {
-			if (path == undefined) return _path;
+		with (_(arguments,
+				['path'],
+				[['string']])) {
+			if (path === undefined) return _path;
 			if (path !== '' && !path.match(/\/$/)) path += '/';
 			_path = path;
 			return null;
@@ -153,7 +156,9 @@
 	 * Play the sound identified by name.
 	 */
 	function play() {
-		with (_(arguments, ['name'], ['string'])) {
+		with (_(arguments,
+				['name'],
+				['string'])) {
 			if (!_sounds[name]) return false;
 			if (!_supported) return true;
 			if (_sounds[name].ended) _sounds[name].pause(); // Hack to force browsers to emit the 'play' event on subsequent plays.
@@ -169,17 +174,17 @@
 	 * Remove all sounds or just the sound identified by name from the library.
 	 */
 	function remove() {
-		with (_(arguments, ['name'], [['string']])) {
+		with (_(arguments,
+				['name'],
+				[['string']])) {
 			if (name === undefined) {
 				this.stop();
 				_sounds = {};
-				return true;
-			}
-			if (_sounds[name]) {
+			} else if (_sounds[name]) {
 				this.stop(name);
 				delete _sounds[name];
 			}
-			return true;
+			return null;
 		}
 	}
 	htmlaudio.remove = remove;
@@ -189,7 +194,9 @@
 	 * Return the full url of the audio object.
 	 */
 	function source() {
-		with (_(arguments, ['name'], ['string'])) {
+		with (_(arguments,
+				['name'],
+				['string'])) {
 			if (!_sounds[name]) return '';
 			return _sounds[name]._source;
 		}
@@ -202,9 +209,11 @@
 	 * Stop all playing sounds or just the sound given by name.
 	 */
 	function stop() {
-		with (_(arguments, ['name'], [['string']])) {
-			if (name === undefined) {
-				for (var s in _sounds) this.stop(s);
+		with (_(arguments,
+				['name'],
+				[['string']])) {
+			if (name == undefined) {
+				for (var s in _sounds) stop(s);
 				return null;
 			}
 			if (!_supported || !_sounds[name]) return null;
@@ -230,7 +239,9 @@
 	 * Get or set the volume for all the sounds.
 	 */
 	function volume() {
-		with (_(arguments, ['volume'], [['number']])) {
+		with (_(arguments,
+				['volume'],
+				[['number']])) {
 			if (!volume) return _volume;
 			if (volume < 0 || volume > 1) volume = 1.0;
 			_volume = volume;
