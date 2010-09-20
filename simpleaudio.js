@@ -88,6 +88,9 @@
 		
 		var that = this
 		this.url = ''
+		this.source = function() {
+			return this.url;
+		}
 		
 		if (!_extension) {
 			setTimeout(function() {
@@ -100,6 +103,9 @@
 		this.url = _path + name + _extension
 		this.audio = new Audio(this.url)
 		this.audio.volume = _volume
+		this.source = function(full) {
+			return full ? this.audio.currentSrc : this.url;
+		}
 		
 		this.loaded = function() {
 			that.dispatch('loaded')
@@ -246,13 +252,14 @@
 	
 	/**
 	 * string source(string sound)
+	 * string source(string sound, boolean full)
 	 */
 	window.htmlaudio.source = function() {
 		with (_(arguments,
-				['sound'],
-				['string'])) {
+				['sound', 'full'],
+				['string', ['boolean']])) {
 			if (!_sounds[sound]) return ''
-			return _sounds[sound].url
+			return _sounds[sound].source(full != undefined)
 		}
 	}
 	
