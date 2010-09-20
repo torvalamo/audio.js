@@ -8,9 +8,9 @@
 
 (function() {
 	window.htmlaudio = {}
-	var _sounds = {}
-	var _path = ''
 	var _extension = false
+	var _path = ''
+	var _sounds = {}
 	var _volume = 1
 	
 	try {
@@ -53,11 +53,6 @@
 	function Sound(name) {
 		this.play = function() {
 			if (!_extension) return
-			if (this.audio.ended) {
-				// Necessary to make browsers emit the 'play' event if the
-				// sound has already played once.
-				this.audio.pause()
-			}
 			this.audio.play()
 		}
 		
@@ -259,7 +254,7 @@
 				['sound', 'full'],
 				['string', ['boolean']])) {
 			if (!_sounds[sound]) return ''
-			return _sounds[sound].source(full != undefined)
+			return _sounds[sound].source(full === true)
 		}
 	}
 	
