@@ -20,7 +20,7 @@
 		delete audioObj;
 	} catch(e) {}
 	
-	function _type(value, type) {
+	function __(value, type) {
 		if (type instanceof RegExp) return type.match(value)
 		else if (type === 'regexp') return value instanceof RegExp
 		else if (type === 'array') return value instanceof Array
@@ -32,7 +32,7 @@
 		for (var t in types) {
 			var opt = types[t] instanceof Array,
 				type = opt ? types[t][0] : types[t]
-			if (!_type(args[a], type)) { // wrong type
+			if (!__(args[a], type)) { // wrong type
 				if (!opt || (args[a] !== undefined && t == types.length - 1)) {
 					// required or end optional, error
 					throw new Error('Wrong argument type (argument #' + a +
@@ -279,7 +279,7 @@
 	 * boolean supported()
 	 */
 	window.htmlaudio.supported = function() {
-		return (_extension !== false)
+		return !!_extension
 	}
 	
 	/**

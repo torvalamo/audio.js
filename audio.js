@@ -1,351 +1,607 @@
-/******************************************************************************
-           DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
-                   Version 2, December 2004
-
-
-Copyright (C) 2010 Tor Valamo <tor.valamo@gmail.com>
-Everyone is permitted to copy and distribute verbatim or modified
-copies of this license document, and changing it is allowed as long
-as the name is changed.
- 
-           DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
-  TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
- 
- 0. You just DO WHAT THE FUCK YOU WANT TO.
-******************************************************************************/
+/**
+ * This file is licensed under the WTFPL.
+ * http://sam.zoy.org/wtfpl/COPYING
+ *
+ * For an overview of these functions and what they do, see
+ * http://github.com/torvalamo/htmlaudio/wiki
+ */
 
 (function() {
-	var htmlaudio = {};
-	
-	var _volume = 1.0;
-	var _groups = {};
-	var _layers = {};
-	var _sounds = {};
-	var _silent = false;
-	
-	//////////////////////////////////////////////////////////////////////////
-	// All-encompassing functions
-	
-	function canPlayType(mime) {
-		try {
-			var audioObj = new Audio('');
-			return !!audioObj.canPlayType(mime);
-		} catch(e) {
-			return false;
-		}
+	window.htmlaudio = {
+		FADE_CURVE_LINEAR: 0,
+		FADE_CURVE_LOGARITHMIC: 1,
+		FADE_CURVE_EXPONENTIAL: 2
 	}
-	htmlaudio.canPlayType = canPlayType;
+	var _channels = {}
+	var _extension = false
+	var _fadeCurve = window.htmlaudio.FADE_CURVE_LINEAR
+	var _fadeResolution = 10
+	var _fadeTime = 0
+	var _groups = {}
+	var _path = ''
+	var _sounds = {}
+	var _type = ''
+	var _volume = 1
 	
-	function failSilently(on) {
-		_silent = (on !== false);
+	function __(value, type) {
+		if (type instanceof RegExp) return type.match(value)
+		else if (type === 'regexp') return value instanceof RegExp
+		else if (type === 'array') return value instanceof Array
+		else return typeof value === type
 	}
-	htmlaudio.failSilently = failSilently;
 	
-	function getGlobalVolume() {
-		return _volume;
-	}
-	htmlaudio.getGlobalVolume = getGlobalVolume;
-	
-	function setGlobalVolume(volume) {
-		// validate
-		volume = !isNaN(volume) ? ((volume < 0) ? 0 :
-			(volume > 1) ? 1 : volume) : 1;
-		_volume = volume;
-		
-		// adjust volume of all sounds
-		for (var s in _sounds) {
-			var v = 1;
-			if (_sounds[s].group) {
-				// if in a group, multiply with group volume
-				v = _groups[_sounds[s].group].volume;
-			} else if (_sounds[s].layer) {
-				// if in a layer in a group, multiply with that layer's
-				// group volume
-				if (_layers[_sounds[s].layer].group) {
-					v = _groups[_layers[_sounds[s].layer].group].volume;
+	function _(args, names, types) {
+		var a = 0, out = {}
+		for (var t in types) {
+			var opt = types[t] instanceof Array,
+				type = opt ? types[t][0] : types[t]
+			if (!__(args[a], type)) { // wrong type
+				if (!opt || (args[a] !== undefined && t == types.length - 1)) {
+					// required or end optional, error
+					throw new Error('Wrong argument type (argument #' + a +
+									' got ' + args[a] + ', expected ' + type +
+									').')
+				} else {
+					// optional, skip to next format
+					out[names[t]] = undefined
 				}
+			} else {
+				// right type, move to next argument
+				out[names[t]] = args[a++]
 			}
-			_sounds[s].volume = volume * v;
+		}
+		return out
+	}
+	
+	function Channel(name) {
+		this._volume = 1
+		this.groups = []
+		this.fadeTime = function(fadeTime) {
+			if (fadeTime == undefined) {
+				if (this._fadeTime) return this._fadeTime
+				return _fadeTime
+			}
+			this._fadeTime = fadeTime
+			if (fadeTime < 0) delete this._fadeTime
+			return null
+		}
+		this.volume = function(volume) {
+			if (volume == undefined) return this._volume
+			this._volume = volume
+			volume *= _volume
+			for (var g in this.groups) {
+				_groups[this.groups[g]].volume(volume)
+			}
+			return null
 		}
 	}
-	htmlaudio.setGlobalVolume = setGlobalVolume;
 	
-	function kill() {
-		for (var s in _sounds) {
-			pauseSound(_sounds[s], false);
+	function Group(name, channel) {
+		this.limit = 1
+		this.playing = 0
+		this.nonpriority = []
+		this.channel = _channels[channel]
+		this.sounds = []
+		this.volume = function(volume) {
+			for (var s in this.sounds) _sounds[this.sounds[s]].volume(volume)
 		}
 	}
-	htmlaudio.kill = kill;
 	
-	//////////////////////////////////////////////////////////////////////////
-	// Group functions.
-	
-	function addGroup(name) {
-		// validate
-		name = name.toString ? name.toString() : name;
-		if (_groups[name]) return false;
+	function Sound(name, group, priority, limit) {
+		this.priority = false
+		this.peak = 1
+		this.fading = false
+		this.group = _groups[group]
 		
-		_groups[name] = {
-			volume: 1,
-			sounds: [],
-			layers: []
-		};
-		return true;
-	}
-	htmlaudio.addGroup = addGroup;
-	
-	function removeGroup(name) {
-		// validate
-		name = name.toString ? name.toString() : name;
-		if (!_groups[name]) return false;
-		
-		// remove sounds
-		for (var s in _groups[name].sounds) {
-			removeSound(_groups[name].sounds[s]);
+		this.play = function(loop, reset, fadeTime) {
+			if (!_extension) return
+			this.audio.loop = loop
+			if (reset && !this.audio.paused) {
+				this.audio.currentTime = 0
+				return
+			}
+			if (this.group.playing >= this.group.limit) {
+				if (!this.priority) return
+				if (this.group.nonpriority.length == 0) return
+				_sounds[this.group.nonpriority.pop()].stop()
+			}
+			if (!this.priority) {
+				this.group.nonpriority.push(name)
+			}
+			this.audio.play()
 		}
 		
-		// remove layers
-		for (var l in _groups[name].layers) {
-			removeLayer(_groups[name].layers[l]);
+		this.pause = function(reset, fadeTime) {
+			if (!_extension) return
+			if (reset) this.audio.currentTime = 0
+			this.audio.pause()
 		}
 		
-		delete _groups[name];
-		return true;
-	}
-	htmlaudio.removeGroup = removeGroup;
-	
-	function getGroupVolume(name) {
-		// validate
-		name = name.toString ? name.toString() : name;
-		if (!_groups[name]) return false;
-		
-		return _groups[name].volume;
-	}
-	htmlaudio.getGroupVolume = getGroupVolume;
-	
-	function setGroupVolume(name, volume) {
-		// validate
-		name = name.toString ? name.toString() : name;
-		if (!_groups[name]) return false;
-		volume = !isNaN(volume) ? ((volume < 0) ? 0 :
-			(volume > 1) ? 1 : volume) : 1;
-		
-		_groups[name].volume = volume;
-		
-		// multiply with global volume
-		volume *= _volume;
-		
-		// adjust volume for groups' sounds
-		_groups[name].sounds.forEach(function(s) {
-			_sounds[s].volume = volume;
-		});
-		
-		// adjust volume for groups' layers' sounds
-		for (var l in _groups[name].layers) {
-			_layers[_groups[name].layers[l]].sounds.forEach(function(s) {
-				_sounds[s].volume = volume;
-			});
+		this.volume = function(volume) {
+			if (!_extension) return
+			this.peak = volume
+			if (!this.fading) this.audio.volume = volume
 		}
 		
-		return true;
-	}
-	htmlaudio.setGroupVolume = setGroupVolume;
-	
-	//////////////////////////////////////////////////////////////////////////
-	// Layer functions
-	
-	function addLayer(name, limit, group) {
-		// validate
-		name = name.toString ? name.toString() : name;
-		if (_layers[name]) return false;
-		if (!group && typeof limit === 'string') {
-			// limit was omitted
-			group = limit;
-			limit = undefined;
-		}
-		if (!_groups[group]) return false;
-		if (!limit || isNaN(limit) || limit < 1) limit = 1;
+		this.listeners = {}
 		
-		_layers[name] = {
-			limit: limit,
-			playing: 0,
-			group: group,
-			sounds: []
-		};
-		
-		_groups[group].layers.push(name);
-		return true;
-	}
-	htmlaudio.addLayer = addLayer;
-	
-	function removeLayer(name) {
-		// validate
-		name = name.toString ? name.toString() : name;
-		if (!_layers[name]) return false;
-		
-		// remove from group
-		if (_layers[name].group) {
-			var i = _groups[_layers[name].group].layers.indexOf(name);
-			_groups[_layers[name].group].layers.splice(i, 1);
+		this.addListener = function(type, eventListener) {
+			if (!this.listeners[type]) this.listeners[type] = []
+			this.listeners[type].push(eventListener)
 		}
 		
-		// remove sounds
-		for (var s in _layers[name].sounds) {
-			removeSound(_layers[name].sounds[s]);
+		this.dispatch = function(type) {
+			if (!this.listeners[type]) return
+			for (var f in this.listeners[type]) {
+				this.listeners[type][f](type)
+			}
 		}
 		
-		delete _layers[name];
-		return true;
-	}
-	htmlaudio.removeLayer = removeLayer;
-	
-	function setLayerLimit(name, limit) {
-		// validate
-		name = name.toString ? name.toString() : name;
-		if (!_layers[name]) return false;
-		if (isNaN(limit) || limit < 1) limit = 1;
+		var that = this
+		this.url = ''
+		this.source = function() {
+			return this.url;
+		}
 		
-		_layers[name].limit = limit;
-		return true;
-	}
-	htmlaudio.setLayerLimit = setLayerLimit;
-	
-	//////////////////////////////////////////////////////////////////////////
-	// Sound functions
-	
-	function _addSound(name, url, eventHandler) {
-		// validate
-		name = name.toString ? name.toString() : name;
-		if (_sounds[name]) return false;
-		if (typeof url !== 'string') return false;
-		if (eventHandler && typeof eventHandler !== 'function') return false;
+		if (!_extension) {
+			setTimeout(function() {
+				that.dispatch('loadstart')
+				that.dispatch('loaded')
+			}, 10)
+			return
+		}
 		
-		var sound = new Audio(url);
-		sound.loops = false;
+		this.url = _path + name + _extension
+		this.audio = new Audio(this.url)
+		this.audio.volume = _volume
+		this.source = function(full) {
+			return full ? this.audio.currentSrc : this.url;
+		}
 		
-		function ev(event) {
-			// internal events
-			switch(event) {
+		this.loaded = function() {
+			that.dispatch('loaded')
+			that.audio.removeEventListener('progress', that.eventDispatcher, false)
+			that.audio.removeEventListener('stalled', that.eventDispatcher, false)
+			delete that.progress
+			delete that.loaded
+		}
+		
+		this.eventDispatcher = function(event) {
+			var type = event.type
+			switch(type) {
+			case 'loadstart':
+				that.audio.removeEventListener('loadstart', that.eventDispatcher, false)
+				break
+			case 'progress':
+				clearTimeout(that.progress)
+				that.progress = setTimeout(that.loaded, 3500)
+				break
+			case 'stalled':
+				clearTimeout(that.progress)
+				return
+			case 'canplaythrough':
+				that.audio.removeEventListener('canplaythrough', that.eventDispatcher, false)
+				break
 			case 'play':
-				if (_sounds[name].layer) _layers[layer].playing++;
-				break;
+				that.group.playing++
+				if (!that.priority) that.group.nonpriority.push(name)
+				break
 			case 'pause':
-				if (_sounds[name].layer) _layers[layer].playing--;
-				break;
-			case 'ended':
-				_sounds[name].currentTime = 0;
-				if (_sounds[name].loops) {
-					_sounds[name].play();
-					return;
+				that.group.playing--
+				if (!that.priority) {
+					var i = that.group.nonpriority.indexOf(name)
+					that.group.nonpriority.slice(i, 1)
 				}
-				if (_sounds[name].layer) _layers[layer].playing--;
-				break;
+				type = 'ended'
+				break
+			case 'ended':
+				that.audio.currentTime = 0 // must be set before pause on FF
+				that.audio.pause()
+				return // don't emit here, see pause
 			}
-			if (eventHandler) eventHandler(event, name);
+			that.dispatch(type)
 		}
 		
-		// add event listeners
-		sound.addEventListener('error', function() {ev('error')}, false);
-		sound.addEventListener('progress', function() {ev('progress')}, false);
-		sound.addEventListener('canplaythrough', function () {ev('canplaythrough')}, false);
-		sound.addEventListener('play', function() {ev('play')}, false);
-		sound.addEventListener('pause', function() {ev('pause')}, false);
-		sound.addEventListener('ended', function() {ev('ended')}, false);
+		this.audio.addEventListener('error', this.eventDispatcher, false)
+		this.audio.addEventListener('loadstart', this.eventDispatcher, false)
+		this.audio.addEventListener('progress', this.eventDispatcher, false)
+		this.audio.addEventListener('stalled', this.eventDispatcher, false)
+		this.audio.addEventListener('canplaythrough', this.eventDispatcher, false)
+		this.audio.addEventListener('play', this.eventDispatcher, false)
+		this.audio.addEventListener('pause', this.eventDispatcher, false)
+		this.audio.addEventListener('ended', this.eventDispatcher, false)
 		
-		// load sound
-		sound.load();
-		_sounds[name] = sound;
-		return true;
+		this.audio.load()
 	}
 	
-	function addSound(name, url, layer, eventHandler) {
-		// validate
-		if (!eventHandler && typeof layer === 'function') {
-			// layer was omitted
-			eventHandler = layer;
-			layer = undefined;
+	/**
+	 * boolean add(string name, string group)
+	 * boolean add(string name, string group, number limit)
+	 * boolean add(string name, string group, boolean priority)
+	 * boolean add(string name, string group, number limit, boolean priority)
+	 * boolean add(string name, string group, function eventHandler)
+	 * boolean add(string name, string group, number limit, function eventHandler)
+	 * boolean add(string name, string group, boolean priority, function eventHandler)
+	 * boolean add(string name, string group, number limit, boolean priority, function eventHandler)
+	 */
+	window.htmlaudio.add = function() {
+		with (_(arguments,
+				['name', 'group', 'limit', 'priority', 'eventHandler'],
+				['string', 'string', ['number'], ['boolean'], ['function']])) {
+			if (_sounds[name] || !_groups[group]) return false
+			
+			var sound = new Sound(name, group, !!priority, limit < 1 ? 1 : limit)
+			
+			var eventListener = function(event) {
+				eventHandler && eventHandler(event, name)
+			}
+			
+			sound.addListener('error', eventListener)
+			sound.addListener('loadstart', eventListener)
+			sound.addListener('progress', eventListener)
+			sound.addListener('canplaythrough', eventListener)
+			sound.addListener('loaded', eventListener)
+			sound.addListener('play', eventListener)
+			sound.addListener('ended', eventListener)
+			
+			_sounds[name] = sound
+			return true
 		}
-		layer = layer.toString ? layer.toString() : layer;
-		if (layer && !_layers[layer]) return false;
-		
-		if (!_addSound(name, url, eventHandler)) return false;
-		
-		var v = 1;
-		// add sound to layer
-		if (layer) {
-			_sounds[name].layer = layer;
-			_layers[layer].sounds.push(name);
-			if (_layers[layer].group) v = _groups[_layers[layer].group].volume;
-		}
-		_sounds[name].volume = v * _volume;
-		return true;
-	};
-	htmlaudio.addSound = addSound;
-	
-	function addSoundToGroup(name, url, group, eventHandler) {
-		// validate
-		group = group.toString ? group.toString() : group;
-		if (group && !_groups[group]) return false;
-		
-		if (!_addSound(name, url, eventHandler)) return false;
-		
-		// add sound to group
-		_sounds[name].group = group;
-		_groups[group].sounds.push(name);
-		_sounds[name].volume = _groups[group].volume * _volume;
-		return true;
-	};
-	htmlaudio.addSoundToGroup = addSoundToGroup;
-	
-	function removeSound(name) {
-		// validate
-		name = name.toString ? name.toString() : name;
-		if (!_sounds[name]) return false;
-		
-		// remove from group
-		if (_sounds[name].group) {
-			var i = _groups[_sounds[name].group].sounds.indexOf(name);
-			_groups[_sounds[name].group].sounds.splice(i, 1);
-		}
-		
-		// remove from layer
-		if (_sounds[name].layer) {
-			var i = _layers[_sounds[name].layer].sounds.indexOf(name);
-			_layers[_sounds[name].layer].sounds.splice(i, 1);
-		}
-		
-		pauseSound(name);
-		delete _sounds[name];
-		return true;
 	}
-	htmlaudio.removeSound = removeSound;
 	
-	function playSound(name, loop) {
-		// validate
-		name = name.toString ? name.toString() : name;
-		if (!_sounds[name]) return false;
-		if (typeof loop !== 'boolean') loop = false;
-		
-		// check that layer limit isn't reached
-		if (_sounds[name].layer && _layer[_sounds[name].layer].playing
-			>= _layer[_sounds[name].layer].limit) return false;
-		
-		_sounds[name].play();
-		return true;
+	/**
+	 * boolean addChannel(string name)
+	 */
+	window.htmlaudio.addChannel = function() {
+		with (_(arguments,
+				['name'],
+				['string'])) {
+			if (_channels[name]) return false
+			
+			_channels[name] = new Channel(name)
+			return true
+		}
 	}
-	htmlaudio.playSound = playSound;
 	
-	function pauseSound(name, reset) {
-		// validate
-		name = name.toString ? name.toString() : name;
-		if (!_sounds[name]) return false;
-		if (typeof reset !== 'boolean') reset = true;
-		
-		_sounds[name].pause();
-		if (reset) _sounds[name].currentTime = 0;
-		return true;
+	/**
+	 * boolean addGroup(string name, string channel)
+	 */
+	window.htmlaudio.addGroup = function() {
+		with (_(arguments,
+				['name', 'channel'],
+				['string', 'string'])) {
+			if (_groups[name] || !_channels[channel]) return false
+			
+			_groups[name] = new Group(name, channel)
+			_channels[channel].groups.push(name)
+			return true
+		}
 	}
-	htmlaudio.pauseSound = pauseSound;
 	
-	window.htmlaudio = htmlaudio;
+	/**
+	 * number fadeCurve()
+	 * void fadeCurve(number fadeCurve)
+	 */
+	window.htmlaudio.fadeCurve = function() {
+		with (_(arguments,
+				['fadeCurve'],
+				[['number']])) {
+			if (fadeCurve == undefined) return _fadeCurve
+			fadeCurve = Math.round(fadeCurve)
+			if (fadeCurve < 0 || fadeCurve > 2) fadeCurve = 0
+			_fadeCurve = fadeCurve
+			return null
+		}
+	}
+	
+	/**
+	 * number fadeResolution()
+	 * void fadeResolution(number fadeResolution)
+	 */
+	window.htmlaudio.fadeResolution = function() {
+		with (_(arguments,
+				['fadeResolution'],
+				[['number']])) {
+			if (fadeResolution == undefined) return _fadeResolution
+			fadeResolution = Math.round(fadeResolution)
+			if (fadeResolution < 1) fadeResolution = 1
+			_fadeResolution = fadeResolution
+			return null
+		}
+	}
+	
+	/**
+	 * number fadeTime()
+	 * number fadeTime(string channel)
+	 * void fadeTime(number fadeTime)
+	 * void fadeTime(string channel, number fadeTime)
+	 */
+	window.htmlaudio.fadeTime = function() {
+		with (_(arguments,
+				['channel', 'fadeTime'],
+				[['string'], ['number']])) {
+			if (channel == undefined) {
+				if (fadeTime == undefined) return _fadeTime
+				fadeTime = Math.round(fadeTime)
+				if (fadeTime < 0) fadeTime = 0
+				_fadeTime = fadeTime
+				return null
+			}
+			if (!_channels[channel]) return null
+			if (fadeTime == undefined) return _channels[channel].fadeTime()
+			fadeTime = Math.round(fadeTime)
+			_channels[channel].fadeTime(fadeTime)
+			return null
+		}
+	}
+	
+	/**
+	 * number limit(string group)
+	 * void limit(string group, number limit)
+	 */
+	window.htmlaudio.limit = function() {
+		with (_(arguments,
+				['group', 'limit'],
+				['string', ['number']])) {
+			if (!_groups[group]) return null
+			if (limit == undefined) return _groups[group].limit
+			if (limit < 1) limit = 1
+			_groups[group].limit = limit
+			return null
+		}
+	}
+	
+	/**
+	 * array list()
+	 * array list(string search)
+	 * array list(regexp filter)
+	 * array list(string search, regexp filter)
+	 */
+	window.htmlaudio.list = function() {}
+	
+	/**
+	 * array listChannels()
+	 * array listChannels(string search)
+	 * array listChannels(regexp filter)
+	 * array listChannels(string search, regexp filter)
+	 */
+	window.htmlaudio.listChannels = function() {}
+	
+	/**
+	 * array listChannelGroups(string channel)
+	 * array listChannelGroups(string channel, string search)
+	 * array listChannelGroups(string channel, regexp filter)
+	 * array listChannelGroups(string channel, string search, regexp filter)
+	 */
+	window.htmlaudio.listChannelGroups = function() {}
+	
+	/**
+	 * array listChannelSounds(string channel)
+	 * array listChannelSounds(string channel, string search)
+	 * array listChannelSounds(string channel, regexp filter)
+	 * array listChannelSounds(string channel, string search, regexp filter)
+	 */
+	window.htmlaudio.listChannelSounds = function() {}
+	
+	/**
+	 * array listGroups()
+	 * array listGroups(string search)
+	 * array listGroups(regexp filter)
+	 * array listGroups(string search, regexp filter)
+	 */
+	window.htmlaudio.listGroups = function() {}
+	
+	/**
+	 * array listGroupSounds(string group)
+	 * array listGroupSounds(string group, string search)
+	 * array listGroupSounds(string group, regexp filter)
+	 * array listGroupSounds(string group, string search, regexp filter)
+	 */
+	window.htmlaudio.listGroupSounds = function() {}
+	
+	/**
+	 * void loop(string sound)
+	 * void loop(string sound, boolean reset)
+	 * void loop(string sound, number fadeTime)
+	 * void loop(string sound, boolean reset, number fadeTime)
+	 */
+	window.htmlaudio.loop = function() {
+		with (_(arguments,
+				['sound', 'reset', 'fadeTime'],
+				['string', ['boolean'], ['number']])) {
+			if (!_sounds[sound]) return
+			_sounds[sound].play(true, reset, fadeTime)
+		}
+	}
+	
+	/**
+	 * string path()
+	 * void path(string path)
+	 */
+	window.htmlaudio.path = function() {
+		if (!path || typeof path !== 'string') return _path;
+		if (!path.match(/\/$/)) path += '/';
+		_path = path;
+		return null;
+	}
+	
+	/**
+	 * void pause()
+	 * void pause(string sound)
+	 * void pause(number fadeTime)
+	 * void pause(string sound, number fadeTime)
+	 */
+	window.htmlaudio.pause = function() {
+		with (_(arguments,
+				['sound', 'fadeTime'],
+				[['string'], ['number']])) {
+			if (sound == undefined) {
+				for (var s in _sounds) _sounds[s].pause(false, fadeTime)
+				return
+			}
+			if (!_sounds[sound]) return
+			_sounds[sound].pause(false, fadeTime)
+		}
+	}
+	
+	/**
+	 * boolean play(string sound)
+	 * boolean play(string sound, boolean reset)
+	 * boolean play(string sound, number fadeTime)
+	 * boolean play(string sound, boolean reset, number fadeTime)
+	 */
+	window.htmlaudio.play = function() {
+		with (_(arguments,
+				['sound', 'reset', 'fadeTime'],
+				['string', ['reset'], ['fadeTime']])) {
+			if (!_sounds[sound]) return false
+			_sounds[sound].play()
+			return true
+		}
+	}
+	
+	/**
+	 * void remove()
+	 * void remove(string sound)
+	 */
+	window.htmlaudio.remove = function() {
+		with (_(arguments,
+				['sound'],
+				[['string']])) {
+			if (sound == undefined) {
+				for (var g in _groups) _groups[g].sounds = []
+				for (var s in _sounds) _sounds[s].pause(false, 0)
+				_sounds = {}
+				return
+			}
+			if (!_sounds[sound]) return
+			var i = _sounds[sound].group.sounds.indexOf(sound)
+			_sounds[sound].group.sounds.slice(i, 1)
+			_sounds[sound].pause()
+			delete _sounds[sound]
+		}
+	}
+	
+	/**
+	 * void removeChannel()
+	 * void removeChannel(string channel)
+	 */
+	window.htmlaudio.removeChannel = function() {
+		with (_(arguments,
+				['channel'],
+				[['string']])) {
+			if (channel == undefined) {
+				for (var s in _sounds) _sounds[s].pause(false, 0)
+				_sounds = {}
+				_groups = {}
+				_channels = {}
+				return
+			}
+			if (!_channels[channel]) return
+			for (var g in _channels[channel].groups) {
+				for (var s in _channels[channel].groups[g].sounds) {
+					_sounds[_channels[channel].groups[g].sounds[s]].pause(false, 0)
+					delete _sounds[_channels[channel].groups[g].sounds[s]]
+				}
+				delete _groups[_channels[channel].groups[g]]
+			}
+			delete _channels[channel]
+		}
+	}
+	
+	/**
+	 * void removeGroup()
+	 * void removeGroup(string group)
+	 */
+	window.htmlaudio.removeGroup = function() {
+		with (_(arguments,
+				['group'],
+				[['string']])) {
+			if (group == undefined) {
+				for (var c in _channels) _channels[c].groups = []
+				for (var s in _sounds) _sounds[s].pause(false, 0)
+				_sounds = {}
+				_groups = {}
+				return
+			}
+			if (!_groups[group]) return
+			for (var s in _groups[group].sounds) {
+				_sounds[_groups[group].sounds[s]].pause(false, 0)
+				delete _sounds[_group[group].sounds[s]]
+			}
+			delete _channels[channel]
+		}
+	}
+	
+	/**
+	 * void stop()
+	 * void stop(string sound)
+	 * void stop(number fadeTime)
+	 * void stop(string sound, number fadeTime)
+	 */
+	window.htmlaudio.stop = function() {
+		with (_(arguments,
+				['sound', 'fadeTime'],
+				[['string'], ['number']])) {
+			if (sound == undefined) {
+				for (var s in _sounds) _sounds[s].pause(true, fadeTime)
+				return
+			}
+			if (!_sounds[sound]) return
+			_sounds[sound].pause(true, fadeTime)
+		}
+	}
+	
+	/**
+	 * boolean supported()
+	 */
+	window.htmlaudio.supported = function() {
+		return !!_extension;
+	}
+	
+	/**
+	 * string type()
+	 * boolean type(string extension, string mime)
+	 */
+	window.htmlaudio.type = function() {
+		with (_(arguments,
+				['extension', 'mime'],
+				[['string'], ['string']])) {
+			if (extension == undefined || mime == undefined) return _type
+			try {
+				var audioObj = new Audio('')
+				if (!audioObj.canPlayType(mime)) return false
+				_type = mime
+				_extension = extension
+			} catch(e) {
+				return false
+			}
+			return true
+		}
+	}
+	
+	/**
+	 * number volume()
+	 * number volume(string channel)
+	 * void volume(number volume)
+	 * void volume(string channel, number volume)
+	 */
+	window.htmlaudio.volume = function() {
+		with (_(arguments,
+				['channel', 'volume'],
+				[['string'], ['number']])) {
+			if (channel == undefined) {
+				if (volume == undefined) return _volume
+				if (volume < 0 || volume > 1) volume = 1
+				_volume = volume
+				for (var c in _channels) _channels[c].volume(_channels[c].volume())
+				return null
+			}
+			if (!_channels[channel]) return null
+			if (volume == undefined) return _channels[c].volume()
+			if (volume < 0 || volume > 1) volume = 1
+			_channels[c].volume(volume)
+			return null
+		}
+	}
 };
