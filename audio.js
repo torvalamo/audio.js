@@ -568,6 +568,7 @@
 				['extension', 'mime'],
 				[['string'], ['string']])) {
 			if (extension == undefined || mime == undefined) return _type
+			if (_type) return false
 			try {
 				var audioObj = new Audio('')
 				if (!audioObj.canPlayType(mime)) return false
