@@ -419,10 +419,14 @@
 	 * void path(string path)
 	 */
 	window.htmlaudio.path = function() {
-		if (!path || typeof path !== 'string') return _path;
-		if (!path.match(/\/$/)) path += '/';
-		_path = path;
-		return null;
+		with (_(arguments,
+				['path'],
+				[['string']])) {
+			if (path == undefined) return _path
+			if (!path.match(/\/$/)) path += '/'
+			_path = path
+			return null
+		}
 	}
 	
 	/**
