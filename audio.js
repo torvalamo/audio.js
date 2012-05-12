@@ -86,18 +86,13 @@
   /**
    * Master
    **/
-  var master = {
+  var master = audio.master = {
     _volume    : __default.volume,
     _fadeTime  : __default.fadeTime,
     _fadeCurve : __default.fadeCurve,
-    volume     : function (volume) {
-      // Get or set the master volume
-      if (typeof volume != 'number') return this._volume
-      if (volume < 0 || volume > 1) volume = __default.volume
-      this._volume = volume
-      Object.keys(groups).forEach(function (group) {
-        audio.group(group)._adjustVolume(volume)
-      })
+    fadeAll    : function () {
+      // fade out and stop all sounds, using the master fade settings, then return the sound level back to normal
+      //
     },
     fadeTime   : function (fadeTime) {
       // Get or set the master/global fade time
@@ -110,9 +105,14 @@
       if (fadeCurve == undefined) return this._fadeCurve
       if (fadeCurve >= 1 && fadeCurve <= 3) this._fadeCurve = Math.round(fadeCurve)
     },
-    fadeAll    : function () {
-      // fade out and stop all sounds, using the master fade settings, then return the sound level back to normal
-      //
+    volume     : function (volume) {
+      // Get or set the master volume
+      if (typeof volume != 'number') return this._volume
+      if (volume < 0 || volume > 1) volume = __default.volume
+      this._volume = volume
+      Object.keys(groups).forEach(function (group) {
+        audio.group(group)._adjustVolume(volume)
+      })
     }
   }
 
