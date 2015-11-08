@@ -1,4 +1,12 @@
-## Use
+# Don't use this
+
+There are better and more updated libraries out there. The spec has changed since this was made, and also a new Web Audio API has been introduced, making HTML5 Audio more professional.
+
+This library isn't finished either. I keep it around for occasional reference. and for posterity.
+
+I suggest you look at [Buzz](http://buzz.jaysalvat.com/) first. **WARNING: Slightly loud sound on page load.**
+
+## How to use
 
 Add either `simpleaudio.js` or `audio.js` to your document's `<head>` tag:
 
